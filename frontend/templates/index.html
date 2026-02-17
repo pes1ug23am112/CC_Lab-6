@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Computing Lab-6: Microservices Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.healthy {
+            background: #10b981;
+            box-shadow: 0 0 10px #10b981;
+        }
+
+        .status-indicator.unhealthy {
+            background: #ef4444;
+            box-shadow: 0 0 10px #ef4444;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-right: 10px;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+        }
+
+        .btn-success {
+            background: #10b981;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .input-group input,
+        .input-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        .data-list {
+            list-style: none;
+        }
+
+        .data-item {
+            background: #f3f4f6;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+
+        .data-item strong {
+            color: #667eea;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-box {
+            background: #f3f4f6;
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .stat-box .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-box .label {
+            color: #6b7280;
+            margin-top: 5px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌐 Cloud Computing Lab-6</h1>
+            <p>Microservices Architecture Demo</p>
+        </div>
+
+        <!-- Service Status Card -->
+        <div class="card">
+            <h2>🔧 Service Status</h2>
+            <div id="serviceStatus">
+                <p class="loading">Checking service status...</p>
+            </div>
+            <button class="btn" onclick="checkHealth()">Refresh Status</button>
+        </div>
+
+        <!-- Create Data Card -->
+        <div class="card">
+            <h2>➕ Create New Entry</h2>
+            <div id="createAlert"></div>
+            <div class="input-group">
+                <label for="dataContent">Content:</label>
+                <textarea id="dataContent" rows="3" placeholder="Enter your data here..."></textarea>
+            </div>
+            <button class="btn btn-success" onclick="createData()">Submit Data</button>
+        </div>
+
+        <!-- View Data Card -->
+        <div class="card">
+            <h2>📊 Data Entries</h2>
+            <div id="dataList">
+                <p class="loading">Loading data...</p>
+            </div>
+            <button class="btn" onclick="loadData()">Refresh Data</button>
+        </div>
+
+        <!-- Statistics Card -->
+        <div class="card">
+            <h2>📈 Service Statistics</h2>
+            <div id="statsContainer">
+                <p class="loading">Loading statistics...</p>
+            </div>
+            <button class="btn" onclick="loadStats()">Refresh Stats</button>
+        </div>
+    </div>
+
+    <script>
+        // Check service health
+        async function checkHealth() {
+            const statusDiv = document.getElementById('serviceStatus');
+            statusDiv.innerHTML = '<p class="loading">Checking...</p>';
+
+            try {
+                const response = await fetch('/api/proxy/health');
+                const data = await response.json();
+
+                if (response.ok && data.status === 'healthy') {
+                    statusDiv.innerHTML = `
+                        <p>
+                            <span class="status-indicator healthy"></span>
+                            <strong>Backend Service: Online</strong>
+                        </p>
+                        <p style="color: #6b7280; margin-top: 10px;">
+                            Version: ${data.version} | 
+                            Last checked: ${new Date(data.timestamp).toLocaleString()}
+                        </p>
+                    `;
+                } else {
+                    statusDiv.innerHTML = `
+                        <p>
+                            <span class="status-indicator unhealthy"></span>
+                            <strong>Backend Service: Offline</strong>
+                        </p>
+                    `;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <p>
+                        <span class="status-indicator unhealthy"></span>
+                        <strong>Error: ${error.message}</strong>
+                    </p>
+                `;
+            }
+        }
+
+        // Create new data
+        async function createData() {
+            const content = document.getElementById('dataContent').value;
+            const alertDiv = document.getElementById('createAlert');
+
+            if (!content.trim()) {
+                alertDiv.innerHTML = '<div class="alert alert-error">Please enter some content!</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/proxy/data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ content: content })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    alertDiv.innerHTML = '<div class="alert alert-success">Data created successfully!</div>';
+                    document.getElementById('dataContent').value = '';
+                    loadData();
+                    setTimeout(() => alertDiv.innerHTML = '', 3000);
+                } else {
+                    alertDiv.innerHTML = `<div class="alert alert-error">Error: ${data.error || 'Unknown error'}</div>`;
+                }
+            } catch (error) {
+                alertDiv.innerHTML = `<div class="alert alert-error">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Load data
+        async function loadData() {
+            const dataDiv = document.getElementById('dataList');
+            dataDiv.innerHTML = '<p class="loading">Loading...</p>';
+
+            try {
+                const response = await fetch('/api/proxy/data');
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    if (result.data.length === 0) {
+                        dataDiv.innerHTML = '<p style="color: #6b7280;">No data entries yet. Create one above!</p>';
+                    } else {
+                        const itemsHtml = result.data.map(item => `
+                            <li class="data-item">
+                                <strong>ID:</strong> ${item.id}<br>
+                                <strong>Content:</strong> ${item.content}<br>
+                                <strong>Created:</strong> ${new Date(item.timestamp).toLocaleString()}
+                            </li>
+                        `).join('');
+                        dataDiv.innerHTML = `<ul class="data-list">${itemsHtml}</ul>`;
+                    }
+                } else {
+                    dataDiv.innerHTML = `<p style="color: #ef4444;">Error loading data: ${result.error || 'Unknown error'}</p>`;
+                }
+            } catch (error) {
+                dataDiv.innerHTML = `<p style="color: #ef4444;">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Load statistics
+        async function loadStats() {
+            const statsDiv = document.getElementById('statsContainer');
+            statsDiv.innerHTML = '<p class="loading">Loading...</p>';
+
+            try {
+                const response = await fetch('/api/proxy/stats');
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    const stats = result.stats;
+                    statsDiv.innerHTML = `
+                        <div class="stats-grid">
+                            <div class="stat-box">
+                                <div class="value">${stats.total_requests}</div>
+                                <div class="label">Total Requests</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="value">${stats.total_entries}</div>
+                                <div class="label">Data Entries</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="value">✓</div>
+                                <div class="label">Service Status</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="value" style="font-size: 1.2em;">${new Date(stats.timestamp).toLocaleTimeString()}</div>
+                                <div class="label">Last Update</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    statsDiv.innerHTML = `<p style="color: #ef4444;">Error loading stats: ${result.error || 'Unknown error'}</p>`;
+                }
+            } catch (error) {
+                statsDiv.innerHTML = `<p style="color: #ef4444;">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Initialize on page load
+        window.onload = function() {
+            checkHealth();
+            loadData();
+            loadStats();
+        };
+    </script>
+</body>
+</html>
