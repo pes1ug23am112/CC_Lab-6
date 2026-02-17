@@ -28,8 +28,8 @@ spec:
           value: "5000"
         - name: BACKEND_URL
           value: "http://backend-service:5001"
-        - name: FLASK_ENV
-          value: "production"
+        - name: FLASK_DEBUG
+          value: "False"
         resources:
           requests:
             memory: "128Mi"

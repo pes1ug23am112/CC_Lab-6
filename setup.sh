@@ -72,7 +72,14 @@ case $choice in
         docker compose ps
         echo ""
         echo "Testing Backend Health:"
-        curl -s http://localhost:5001/api/health | python3 -m json.tool || echo "Backend not responding"
+        if curl -s --connect-timeout 5 http://localhost:5001/api/health > /dev/null 2>&1; then
+            curl -s http://localhost:5001/api/health | python3 -m json.tool
+        else
+            echo "❌ Backend service is not responding. Possible reasons:"
+            echo "   - Service is still starting up (wait a few seconds)"
+            echo "   - Port 5001 is not accessible"
+            echo "   - Backend container failed to start (check logs with option 3)"
+        fi
         ;;
     5)
         echo ""
